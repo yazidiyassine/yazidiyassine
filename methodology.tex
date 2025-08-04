@@ -1,0 +1,93 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{geometry}
+\geometry{margin=1in}
+\begin{document}
+\section{Methodology}
+This section presents the A*-guided Tree of Thoughts (A*-ToT) framework, a novel approach to enhancing the reasoning capabilities of Large Language Models (LLMs) through structured cognitive search. A*-ToT formulates reasoning as a search problem within a cognitive state space, leveraging A* search principles to optimize reasoning paths for efficiency, coherence, and solution quality.
+\subsection{Cognitive State Space and Reasoning Formalization}
+\textbf{State Representation:} A reasoning state $s \in S$ is defined as:
+\[
+s = \langle \mathcal{T}_s, \mathcal{C}_s, \mathcal{K}_s, d_s \rangle,
+\]
+where $\mathcal{T}_s$ represents the intermediate reasoning thoughts generated thus far, $\mathcal{C}_s$ denotes the current problem context and partial conclusions, $\mathcal{K}_s$ encapsulates accumulated domain knowledge and insights, and $d_s$ is the depth of reasoning, measured by the number of deliberation steps taken.
+The initial state $s_0 = \langle \emptyset, P, \mathcal{K}_0, 0 \rangle$ represents the starting point, where $P$ is the problem statement and $\mathcal{K}_0$ is the LLM's prior knowledge. Progression through states corresponds to the generation and refinement of reasoning sequences.
+\textbf{Cognitive Actions:} A*-ToT defines six fundamental cognitive actions to guide the reasoning process:
+\[
+\mathcal{A}(s) = \{a_{\text{decomp}}, a_{\text{analyze}}, a_{\text{synth}}, a_{\text{verify}}, a_{\text{abstract}}, a_{\text{backtrack}}\},
+\]
+where:
+\begin{itemize}
+    \item $a_{\text{decomp}}$: Decompose complex problems into smaller sub-problems.
+    \item $a_{\text{analyze}}$: Examine the current state to identify logical next steps.
+    \item $a_{\text{synth}}$: Synthesize insights into coherent conclusions.
+    \item $a_{\text{verify}}$: Validate reasoning chains and check consistency.
+    \item $a_{\text{abstract}}$: Recognize patterns and general principles.
+    \item $a_{\text{backtrack}}$: Revisit and revise earlier reasoning steps.
+\end{itemize}
+Each action triggers specific LLM prompting strategies tailored to elicit the desired cognitive behavior.
+\subsection{State Transition Mechanism and Guided Thought Generation}
+\textbf{State Transitions:} The transition from state $s$ to a successor state $s'$ through an action $a$ is formalized as:
+\[
+T(s, a) = s' = \langle \mathcal{T}_s \cup \text{LLM}(\mathcal{P}(s, a)), \mathcal{C}_{s'}, \mathcal{K}_{s'}, d_s + 1 \rangle,
+\]
+where $\mathcal{P}(s, a)$ constructs the prompt by combining the current state context, action-specific guidance, and meta-cognitive constraints. This ensures targeted and effective thought generation.
+\textbf{Prompt Construction:}
+\[
+\mathcal{P}(s, a) = \text{StateContext}(s) + \text{ActionPrompt}(a) + \text{MetaCognitive}(s) + \text{Constraints},
+\]
+where:
+\begin{itemize}
+    \item $\text{StateContext}(s)$ incorporates relevant background from $\mathcal{T}_s$, $\mathcal{C}_s$, and $\mathcal{K}_s$.
+    \item $\text{ActionPrompt}(a)$ provides action-specific guidance.
+    \item $\text{MetaCognitive}(s)$ reflects reasoning history and cognitive load.
+    \item $\text{Constraints}$ enforce task-specific rules.
+\end{itemize}
+\subsection{Search Guidance with A* Cost Functions}
+To prioritize promising reasoning paths, A*-ToT employs dual cost functions:
+\textbf{Path Cost ($g(s)$):} Quantifies the cumulative effort to reach state $s$:
+\[
+g(s) = \alpha_1 d_s + \alpha_2 \sum_{t \in \mathcal{T}_s} C_{\text{cognitive}}(t) + \alpha_3 \cdot \text{Inconsistency}(\mathcal{T}_s),
+\]
+where $C_{\text{cognitive}}(t)$ evaluates the complexity of thoughts based on token count, semantic density, and logical operations.
+\textbf{Heuristic ($h(s)$):} Estimates the effort to reach a solution from $s$:
+\[
+h(s) = \gamma_1 h_{\text{completeness}}(s) + \gamma_2 h_{\text{coherence}}(s) + \gamma_3 h_{\text{progress}}(s),
+\]
+where:
+\begin{itemize}
+    \item $h_{\text{completeness}}(s)$ measures coverage of required components.
+    \item $h_{\text{coherence}}(s)$ assesses consistency among thoughts.
+    \item $h_{\text{progress}}(s)$ tracks advancement toward the solution.
+\end{itemize}
+\subsection{Integrated A*-ToT Algorithm}
+The A*-ToT algorithm integrates the cognitive state representation, transition mechanisms, and cost functions into a systematic reasoning framework. It maintains a priority queue of states, expanded based on their total cost $f(s) = g(s) + h(s)$.  \begin{algorithm}
+\caption{A*-Guided Tree of Thoughts}
+\begin{algorithmic}[1]
+\REQUIRE Problem $P$, LLM Model $M$  
+\ENSURE Optimal reasoning path  
+\STATE Initialize $s_0 = \langle \emptyset, P, \mathcal{K}_0, 0 \rangle$  
+\STATE OPEN $\leftarrow \{s_0\}$, CLOSED $\leftarrow \emptyset$  
+\WHILE{OPEN $\neq \emptyset$}  
+    \STATE $s_{\text{current}} \leftarrow \arg\min_{s \in \text{OPEN}} f(s)$  
+    \IF{GoalCondition($s_{\text{current}}$)}  
+        \RETURN ExtractSolution($s_{\text{current}}$)  
+    \ENDIF  
+    \STATE Expand $s_{\text{current}}$ via $\mathcal{A}(s)$, evaluate successors  
+\ENDWHILE  
+\RETURN NoSolutionFound  
+\end{algorithmic}
+\end{algorithm}
+\textbf{Action Selection:} Actions are selected adaptively based on expected cognitive costs:
+\[
+P(a|s) = \frac{\exp(-\lambda \cdot \text{ExpectedCognitiveCost}(s, a))}{\sum_{a' \in \mathcal{A}(s)} \exp(-\lambda \cdot \text{ExpectedCognitiveCost}(s, a'))},
+\]
+where the expected cost balances current path cost, action overhead, and heuristic estimates.
+\subsection{Theoretical Properties and Guarantees}
+\textbf{Optimality:} When the heuristic is admissible ($h(s) \leq h^*(s)$ for all $s$), A*-ToT guarantees optimal solutions.
+\textbf{Completeness:} The algorithm ensures solution discovery if one exists within the search bounds.
+\textbf{Complexity:} Time complexity is $O(b^d \cdot T_{\text{LLM}} \cdot T_{\text{heuristic}})$, where $b$ is the branching factor, $d$ is the solution depth, and $T_{\text{LLM}}$ and $T_{\text{heuristic}}$ are the processing times for thought generation and heuristic evaluation, respectively.
+\end{document}
